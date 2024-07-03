@@ -1,5 +1,7 @@
 package com.arin.togetherlion.copurchasing.controller;
 
+import com.arin.togetherlion.common.CustomException;
+import com.arin.togetherlion.common.ErrorCode;
 import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingCreateRequest;
 import com.arin.togetherlion.copurchasing.service.CopurchasingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +15,6 @@ import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -21,7 +22,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CopurchasingController.class)
 @MockBean(JpaMetamodelMappingContext.class)
@@ -91,32 +93,34 @@ class CopurchasingControllerTest {
     }
 
     @Test
-    @DisplayName("유효한 요청 시 201 응답을 반환한다.")
+    @DisplayName("유효한 요청 시 204 응답을 반환한다.")
     void deleteSuccess() throws Exception {
         Long copurchasingId = 1L;
         Long userId = 2L;
 
+        // 서비스 계층 모킹 설정
+        doNothing().when(copurchasingService).delete(userId, copurchasingId);
+
         mockMvc.perform(delete("/copurchasings/{copurchasingId}", copurchasingId)
                         .contentType("application/json")
                         .content(userId.toString()))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         verify(copurchasingService).delete(userId, copurchasingId);
     }
 
     @Test
-    @DisplayName("접근이 거부된 경우 403 응답을 반환한다.")
+    @DisplayName("작성자가 아닌 사용자가 삭제를 요청할 경우 401 응답을 반환한다.")
     void deleteAccessDenied() throws Exception {
         Long copurchasingId = 1L;
         Long userId = 2L;
 
-        doThrow(new AccessDeniedException("Access is denied")).when(copurchasingService).delete(anyLong(), anyLong());
+        doThrow(new CustomException(ErrorCode.NO_PERMISSION)).when(copurchasingService).delete(anyLong(), anyLong());
 
         mockMvc.perform(delete("/copurchasings/{copurchasingId}", copurchasingId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(userId.toString()))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string("Access is denied"));
+                .andExpect(status().isUnauthorized());
 
         verify(copurchasingService).delete(userId, copurchasingId);
     }

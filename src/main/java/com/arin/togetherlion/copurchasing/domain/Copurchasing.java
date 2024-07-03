@@ -3,7 +3,6 @@ package com.arin.togetherlion.copurchasing.domain;
 import com.arin.togetherlion.common.BaseTimeEntity;
 import com.arin.togetherlion.user.domain.User;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,10 +22,8 @@ public class Copurchasing extends BaseTimeEntity {
     private Long id;
 
     @Column(nullable = false)
-    @Size(min = 1, max = 20)
     private String title;
 
-    @Size(max = 500)
     private String content;
 
     @Column(name = "product_total_cost", nullable = false)
@@ -93,5 +90,15 @@ public class Copurchasing extends BaseTimeEntity {
     private void validateDate(LocalDateTime deadlineDate, LocalDateTime tradeDate) {
         if (tradeDate.isBefore(deadlineDate))
             throw new IllegalArgumentException("거래 희망 일자는 모집 완료 일자 이후여야 합니다.");
+    }
+
+    public boolean isStarted() {
+        if (!participations.isEmpty()) {
+            if (this.getProductMaxNumber() <= participations.size())
+                return true;
+            if (this.getDeadlineDate().isBefore(LocalDateTime.now()) && this.getProductMinNumber() <= participations.size())
+                return true;
+        }
+        return false;
     }
 }

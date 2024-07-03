@@ -1,12 +1,13 @@
 package com.arin.togetherlion.point.domain;
 
 import jakarta.persistence.Embeddable;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Embeddable
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Point {
 
     private int amount;
@@ -17,6 +18,7 @@ public class Point {
     }
 
     public void plus(int amount) {
+        validateAmount(amount);
         this.amount += amount;
     }
 

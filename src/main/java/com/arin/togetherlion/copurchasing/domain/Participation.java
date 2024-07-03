@@ -33,6 +33,7 @@ public class Participation extends BaseTimeEntity {
             return false;
         return true;
     }
+
     @Builder
     public Participation(int purchaseNumber, User user) {
         this.purchaseNumber = purchaseNumber;

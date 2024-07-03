@@ -1,22 +1,16 @@
 package com.arin.togetherlion.copurchasing.domain.dto;
 
-import com.arin.togetherlion.copurchasing.domain.ProductTotalCost;
-import com.arin.togetherlion.copurchasing.domain.ShippingCost;
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Builder
 @Getter
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CopurchasingCreateRequest {
 
     @NotBlank(message = "제목은 필수 입력 값입니다.")

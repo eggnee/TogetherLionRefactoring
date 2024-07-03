@@ -1,5 +1,6 @@
 package com.arin.togetherlion.copurchasing.service;
 
+import com.arin.togetherlion.common.CustomException;
 import com.arin.togetherlion.copurchasing.domain.Copurchasing;
 import com.arin.togetherlion.copurchasing.domain.Participation;
 import com.arin.togetherlion.copurchasing.domain.ProductTotalCost;
@@ -98,16 +99,12 @@ class CopurchasingServiceTest {
     @Test
     @DisplayName("작성자는 공동구매 게시물을 삭제할 수 있다.")
     void delete() {
-        try {
-            // given
-            Long userId = userRepository.save(writer).getId();
-            Long copurchasingId = copurchasingRepository.save(testCopurchasing).getId();
+        // given
+        Long userId = userRepository.save(writer).getId();
+        Long copurchasingId = copurchasingRepository.save(testCopurchasing).getId();
 
-            // when
-            copurchasingService.delete(userId, copurchasingId);
-        } catch (AccessDeniedException e) {
-            throw new RuntimeException(e);
-        }
+        // when
+        copurchasingService.delete(userId, copurchasingId);
 
         // then
         Assertions.assertThat(copurchasingRepository.existsById(testCopurchasing.getId())).isFalse();
@@ -144,12 +141,8 @@ class CopurchasingServiceTest {
         notStartedCopurchasing.addParticipation(participation);
         participationRepository.save(participation);
 
-        try {
-            // when
-            copurchasingService.delete(writerId, notStartedCopurchasingId);
-        } catch (AccessDeniedException e) {
-            throw new RuntimeException(e);
-        }
+        // when
+        copurchasingService.delete(writerId, notStartedCopurchasingId);
 
         // then
         Assertions.assertThat(copurchasingRepository.existsById(notStartedCopurchasingId)).isFalse();
@@ -165,13 +158,14 @@ class CopurchasingServiceTest {
                 .build();
 
         // given
+        userRepository.save(writer);
         Long notWriterId = userRepository.save(notWriter).getId();
         Long copurchasingId = copurchasingRepository.save(testCopurchasing).getId();
 
         // when
         // then
         Assertions.assertThatThrownBy(() -> copurchasingService.delete(notWriterId, testCopurchasing.getId()))
-                .isInstanceOf(AccessDeniedException.class);
+                .isInstanceOf(CustomException.class);
     }
 
     @Test

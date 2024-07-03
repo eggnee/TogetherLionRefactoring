@@ -1,5 +1,7 @@
 package com.arin.togetherlion.copurchasing.service;
 
+import com.arin.togetherlion.common.CustomException;
+import com.arin.togetherlion.common.ErrorCode;
 import com.arin.togetherlion.copurchasing.domain.Copurchasing;
 import com.arin.togetherlion.copurchasing.domain.Participation;
 import com.arin.togetherlion.copurchasing.domain.ProductTotalCost;
@@ -47,28 +49,17 @@ public class CopurchasingService {
     }
 
     @Transactional
-    public void delete(Long userId, Long copurchasingId) throws AccessDeniedException {
+    public void delete(Long userId, Long copurchasingId){
         final Copurchasing copurchasing = copurchasingRepository.findById(copurchasingId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매 게시물입니다."));
 
-        if (!userId.equals(copurchasing.getWriter().getId()))
-            throw new AccessDeniedException("게시물 작성자만 삭제할 수 있습니다.");
+        User writer = copurchasing.getWriter();
+        if (!writer.compareById(userId))
+            throw new CustomException(ErrorCode.NO_PERMISSION);
 
-        if (isStarted(copurchasing))
+        if (copurchasing.isStarted())
             throw new IllegalArgumentException("이미 시작된 공동구매 게시물은 삭제할 수 없습니다.");
-        else
-            copurchasingRepository.delete(copurchasing);
-    }
 
-    private boolean isStarted(Copurchasing copurchasing) {
-        List<Participation> participations = copurchasing.getParticipations();
-        if (!participations.isEmpty()) {
-            if (copurchasing.getProductMaxNumber() <= participations.size())
-                return true;
-            if (copurchasing.getDeadlineDate().isBefore(LocalDateTime.now()) && copurchasing.getProductMinNumber() <= participations.size())
-                return true;
-        }
-        return false;
+        copurchasingRepository.delete(copurchasing);
     }
-
 }

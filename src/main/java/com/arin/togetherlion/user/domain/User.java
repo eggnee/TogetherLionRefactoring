@@ -1,25 +1,17 @@
 package com.arin.togetherlion.user.domain;
 
 import com.arin.togetherlion.common.BaseTimeEntity;
-import com.arin.togetherlion.copurchasing.domain.Copurchasing;
-import com.arin.togetherlion.copurchasing.domain.Participation;
 import com.arin.togetherlion.point.domain.Point;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "Users")
+@Table(name = "member")
 public class User extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,6 +35,12 @@ public class User extends BaseTimeEntity {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
-        this.point = new Point();
+        this.point = new Point(0);
+    }
+
+    public boolean compareById(Long otherUserId) {
+        if (!this.id.equals(otherUserId))
+            return false;
+        return true;
     }
 }
