@@ -29,7 +29,7 @@ public class CopurchasingController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping
+    @PostMapping("/participate")
     public ResponseEntity<Void> participate(@RequestBody @Valid CopurchasingParticipateRequest request) {
         final Long participationId = copurchasingService.participate(request);
         return ResponseEntity.created(URI.create("/copurchasings/" + request.getCopurchasingId())).build();

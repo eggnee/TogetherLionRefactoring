@@ -3,6 +3,7 @@ package com.arin.togetherlion.copurchasing.controller;
 import com.arin.togetherlion.common.CustomException;
 import com.arin.togetherlion.common.ErrorCode;
 import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingCreateRequest;
+import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingParticipateRequest;
 import com.arin.togetherlion.copurchasing.service.CopurchasingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -18,7 +19,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -43,7 +43,7 @@ class CopurchasingControllerTest {
 
 
     @Test
-    @DisplayName("유효한 요청 시 201 응답을 반환한다.")
+    @DisplayName("/coupurchasing 유효한 post 요청 시 201 응답을 반환한다.")
     void postSuccess() throws Exception {
         Long copurchasingId = 1L;
         CopurchasingCreateRequest validRequest = CopurchasingCreateRequest.builder()
@@ -70,7 +70,7 @@ class CopurchasingControllerTest {
     }
 
     @Test
-    @DisplayName("유효한 요청이 아닐 시 400 응답을 반환한다.")
+    @DisplayName("/coupurchasing 유효한 post 요청이 아닐 시 400 응답을 반환한다.")
     void postFail() throws Exception {
         Long copurchasingId = 1L;
         CopurchasingCreateRequest invalidRequest = CopurchasingCreateRequest.builder()
@@ -82,9 +82,6 @@ class CopurchasingControllerTest {
                 .writerId(1L)
                 .build();
 
-        // 모킹된 서비스 동작 정의
-        when(copurchasingService.create(any(CopurchasingCreateRequest.class))).thenReturn(null);
-
         // 요청 및 응답 검증
         mockMvc.perform(post("/copurchasings")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -93,7 +90,7 @@ class CopurchasingControllerTest {
     }
 
     @Test
-    @DisplayName("유효한 요청 시 204 응답을 반환한다.")
+    @DisplayName("/coupurchasing 유효한 delete 요청 시 201 응답을 반환한다.")
     void deleteSuccess() throws Exception {
         Long copurchasingId = 1L;
         Long userId = 2L;
@@ -110,8 +107,8 @@ class CopurchasingControllerTest {
     }
 
     @Test
-    @DisplayName("작성자가 아닌 사용자가 삭제를 요청할 경우 401 응답을 반환한다.")
-    void deleteAccessDenied() throws Exception {
+    @DisplayName("/coupurchasing 유효한 delete 요청이 아닐 시 401 응답을 반환한다.")
+    void deleteFail() throws Exception {
         Long copurchasingId = 1L;
         Long userId = 2L;
 
@@ -123,5 +120,44 @@ class CopurchasingControllerTest {
                 .andExpect(status().isUnauthorized());
 
         verify(copurchasingService).delete(userId, copurchasingId);
+    }
+
+    @Test
+    @DisplayName("/coupurchasing/participate 유효한 post 요청 시 201 응답을 반환한다.")
+    void participateSuccess() throws Exception {
+        Long copurchasingId = 1L;
+        Long participantId = 2L;
+        CopurchasingParticipateRequest validRequest = CopurchasingParticipateRequest.builder()
+                .copurchasingId(copurchasingId)
+                .purchaseNumber(1)
+                .participantId(participantId)
+                .build();
+
+        // 모킹된 서비스 동작 정의
+        when(copurchasingService.participate(any(CopurchasingParticipateRequest.class))).thenReturn(copurchasingId);
+
+        // 요청 및 응답 검증
+        mockMvc.perform(post("/copurchasings/participate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/copurchasings/" + copurchasingId));
+    }
+
+    @Test
+    @DisplayName("/coupurchasing/participate 유효한 post 요청이 아닐 시 201 요청을 반환한다. (@Valid 유효성 검사)")
+    void participateFail() throws Exception {
+        Long copurchasingId = 1L;
+        Long participantId = 2L;
+        CopurchasingParticipateRequest invalidRequest = CopurchasingParticipateRequest.builder()
+                .copurchasingId(copurchasingId)
+                .participantId(participantId)
+                .build();
+
+        // 요청 및 응답 검증
+        mockMvc.perform(post("/copurchasings/participate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
     }
 }
