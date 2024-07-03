@@ -7,16 +7,14 @@ import com.arin.togetherlion.copurchasing.domain.Participation;
 import com.arin.togetherlion.copurchasing.domain.ProductTotalCost;
 import com.arin.togetherlion.copurchasing.domain.ShippingCost;
 import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingCreateRequest;
+import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingParticipateRequest;
 import com.arin.togetherlion.copurchasing.repository.CopurchasingRepository;
+import com.arin.togetherlion.copurchasing.repository.ParticipationRepository;
 import com.arin.togetherlion.user.domain.User;
 import com.arin.togetherlion.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.nio.file.AccessDeniedException;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +22,7 @@ public class CopurchasingService {
 
     private final CopurchasingRepository copurchasingRepository;
     private final UserRepository userRepository;
+    private final ParticipationRepository participationRepository;
 
     @Transactional
     public Long create(CopurchasingCreateRequest request) {
@@ -61,5 +60,31 @@ public class CopurchasingService {
             throw new IllegalArgumentException("이미 시작된 공동구매 게시물은 삭제할 수 없습니다.");
 
         copurchasingRepository.delete(copurchasing);
+    }
+
+    @Transactional
+    public Long participate(CopurchasingParticipateRequest request) {
+        final Copurchasing copurchasing = copurchasingRepository.findById(request.getCopurchasingId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매 게시물입니다."));
+
+        if (copurchasing.isStarted())
+            throw new IllegalArgumentException("이미 시작된 공동구매 게시물은 삭제할 수 없습니다.");
+
+        if (copurchasing.isDeadlineExpired())
+            throw new IllegalArgumentException("모집 기한이 만료된 공동구매 게시물은 삭제할 수 없습니다.");
+
+        final User participant = userRepository.findById(request.getParticipantId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        if (copurchasing.getWriter().compareById(participant.getId()))
+            throw new CustomException(ErrorCode.CANT_JOIN);
+
+        Participation participation = Participation.builder()
+                .purchaseNumber(request.getPurchaseNumber())
+                .user(participant)
+                .build();
+
+        copurchasing.addParticipation(participation);
+        return participationRepository.save(participation).getId();
     }
 }

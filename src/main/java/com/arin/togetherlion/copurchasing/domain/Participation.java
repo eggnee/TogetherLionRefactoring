@@ -36,7 +36,13 @@ public class Participation extends BaseTimeEntity {
 
     @Builder
     public Participation(int purchaseNumber, User user) {
+        validatePurchaseNumber(purchaseNumber);
         this.purchaseNumber = purchaseNumber;
         this.user = user;
+    }
+
+    private void validatePurchaseNumber(int purchaseNumber) {
+        if (purchaseNumber < 1)
+            throw new IllegalArgumentException("상품 구매 개수는 1 이상이여야 합니다.");
     }
 }

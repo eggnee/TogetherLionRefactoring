@@ -101,4 +101,10 @@ public class Copurchasing extends BaseTimeEntity {
         }
         return false;
     }
+
+    public boolean isDeadlineExpired() {
+        if (this.getDeadlineDate().isBefore(LocalDateTime.now()))
+            return true;
+        return false;
+    }
 }
