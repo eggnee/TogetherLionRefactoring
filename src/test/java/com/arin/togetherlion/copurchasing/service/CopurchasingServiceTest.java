@@ -10,6 +10,7 @@ import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingCreateRequest;
 import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingParticipateRequest;
 import com.arin.togetherlion.copurchasing.repository.CopurchasingRepository;
 import com.arin.togetherlion.copurchasing.repository.ParticipationRepository;
+import com.arin.togetherlion.user.UserService;
 import com.arin.togetherlion.user.domain.User;
 import com.arin.togetherlion.user.repository.UserRepository;
 import org.assertj.core.api.Assertions;
@@ -30,6 +31,8 @@ class CopurchasingServiceTest {
     private UserRepository userRepository;
     @Autowired
     private ParticipationRepository participationRepository;
+
+    private UserService userService;
     private CopurchasingService copurchasingService;
 
     private User writer;
@@ -37,7 +40,8 @@ class CopurchasingServiceTest {
 
     @BeforeEach
     void setUp() {
-        copurchasingService = new CopurchasingService(copurchasingRepository, userRepository, participationRepository);
+        userService = new UserService();
+        copurchasingService = new CopurchasingService(copurchasingRepository, userRepository, participationRepository, userService);
 
         writer = User.builder()
                 .email("email")
@@ -138,7 +142,7 @@ class CopurchasingServiceTest {
                 .build();
         userRepository.save(user);
 
-        final Participation participation = new Participation(1, user);
+        final Participation participation = new Participation(1, user, 0);
         notStartedCopurchasing.addParticipation(participation);
         participationRepository.save(participation);
 
@@ -195,9 +199,10 @@ class CopurchasingServiceTest {
                 .password("password")
                 .nickname("nickname")
                 .build();
+        user.getPoint().chargeOrRefund(10000);
         userRepository.save(user);
 
-        final Participation participation = new Participation(1, user);
+        final Participation participation = new Participation(1, user, 1000);
         startedCopurchasing.addParticipation(participation);
         participationRepository.save(participation);
 
@@ -234,7 +239,7 @@ class CopurchasingServiceTest {
                 .build();
         userRepository.save(user);
 
-        final Participation participation = new Participation(1, user);
+        final Participation participation = new Participation(1, user, 0);
         startedCopurchasing.addParticipation(participation);
         participationRepository.save(participation);
 
@@ -249,7 +254,20 @@ class CopurchasingServiceTest {
     void participate() {
         // given
         final Long userId = userRepository.save(writer).getId();
-        final Long copurchasingId = copurchasingRepository.save(testCopurchasing).getId();
+        final Copurchasing copurchasing = Copurchasing.builder()
+                .title("title")
+                .productMinNumber(3)
+                .productTotalCost(new ProductTotalCost(1000))
+                .purchasePhotoUrl("url")
+                .tradeDate(LocalDateTime.now().plusDays(10))
+                .deadlineDate(LocalDateTime.now().plusDays(3))
+                .productMaxNumber(5)
+                .content("content")
+                .productUrl("url")
+                .shippingCost(new ShippingCost(3000))
+                .writer(writer)
+                .build();
+        final Long copurchasingId = copurchasingRepository.save(copurchasing).getId();
 
         final User user = User.builder()
                 .email("email")
@@ -257,10 +275,11 @@ class CopurchasingServiceTest {
                 .nickname("nickname")
                 .build();
         final Long participantId = userRepository.save(user).getId();
+        user.getPoint().chargeOrRefund(10000);
 
         final CopurchasingParticipateRequest request = CopurchasingParticipateRequest.builder()
                 .participantId(participantId)
-                .purchaseNumber(1)
+                .purchaseNumber(3)
                 .copurchasingId(copurchasingId)
                 .build();
 
@@ -269,6 +288,10 @@ class CopurchasingServiceTest {
 
         // then
         Assertions.assertThat(participationRepository.existsById(participateId)).isTrue();
+        final int userPointAmount = user.getPoint().getAmount();
+        final int paymentPointAmount = participationRepository.findById(participateId).get().getPaymentPoint().getAmount();
+        Assertions.assertThat(userPointAmount).isEqualTo(5998);
+        Assertions.assertThat(paymentPointAmount).isEqualTo(4002);
     }
 
     @Test
@@ -318,8 +341,9 @@ class CopurchasingServiceTest {
                 .nickname("nickname")
                 .build();
         userRepository.save(user);
+        user.getPoint().chargeOrRefund(10000);
 
-        final Participation participation = new Participation(1, user);
+        final Participation participation = new Participation(1, user, 0);
         startedCopurchasing.addParticipation(participation);
         participationRepository.save(participation);
 
@@ -329,6 +353,7 @@ class CopurchasingServiceTest {
                 .nickname("nickname2")
                 .build();
         final Long participantId = userRepository.save(participant).getId();
+        participant.getPoint().chargeOrRefund(10000);
 
         final CopurchasingParticipateRequest request = CopurchasingParticipateRequest.builder()
                 .participantId(participantId)
@@ -368,6 +393,7 @@ class CopurchasingServiceTest {
                 .nickname("nickname")
                 .build();
         final Long participantId = userRepository.save(participant).getId();
+        participant.getPoint().chargeOrRefund(10000);
 
         final CopurchasingParticipateRequest request = CopurchasingParticipateRequest.builder()
                 .participantId(participantId)

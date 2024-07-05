@@ -10,6 +10,7 @@ import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingCreateRequest;
 import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingParticipateRequest;
 import com.arin.togetherlion.copurchasing.repository.CopurchasingRepository;
 import com.arin.togetherlion.copurchasing.repository.ParticipationRepository;
+import com.arin.togetherlion.user.UserService;
 import com.arin.togetherlion.user.domain.User;
 import com.arin.togetherlion.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class CopurchasingService {
     private final CopurchasingRepository copurchasingRepository;
     private final UserRepository userRepository;
     private final ParticipationRepository participationRepository;
+    private final UserService userService;
 
     @Transactional
     public Long create(CopurchasingCreateRequest request) {
@@ -48,7 +50,7 @@ public class CopurchasingService {
     }
 
     @Transactional
-    public void delete(Long userId, Long copurchasingId){
+    public void delete(Long userId, Long copurchasingId) {
         final Copurchasing copurchasing = copurchasingRepository.findById(copurchasingId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매 게시물입니다."));
 
@@ -79,12 +81,32 @@ public class CopurchasingService {
         if (copurchasing.getWriter().isSameUser(participant.getId()))
             throw new CustomException(ErrorCode.CANT_JOIN);
 
+        final int paymentCost = calculatePaymentCost(copurchasing, request.getPurchaseNumber());
+        userService.usePoint(participant, paymentCost);
+
         Participation participation = Participation.builder()
                 .purchaseNumber(request.getPurchaseNumber())
                 .user(participant)
+                .payment(paymentCost)
                 .build();
 
         copurchasing.addParticipation(participation);
         return participationRepository.save(participation).getId();
+    }
+
+    private int calculatePaymentCost(Copurchasing copurchasing, int purchaseNumber) {
+        final int totalCost = copurchasing.getShippingCost().getValue() + copurchasing.getProductTotalCost().getValue();
+        final int individualCost = (int) Math.ceil((double) totalCost / copurchasing.getProductMinNumber());
+        return individualCost * purchaseNumber;
+    }
+
+    @Transactional
+    public void getCopurchasingState(Long copurchasingId) {
+        final Copurchasing copurchasing = copurchasingRepository.findById(copurchasingId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매 게시물입니다."));
+
+        if (copurchasing.isStarted()) {
+
+        }
     }
 }

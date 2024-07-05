@@ -1,6 +1,7 @@
 package com.arin.togetherlion.copurchasing.domain;
 
 import com.arin.togetherlion.common.BaseTimeEntity;
+import com.arin.togetherlion.point.domain.Point;
 import com.arin.togetherlion.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -24,6 +25,9 @@ public class Participation extends BaseTimeEntity {
     @Column(name = "confirm_date")
     private LocalDateTime confirmDate;
 
+    @Column(name = "payment_point")
+    private Point paymentPoint;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
@@ -35,10 +39,11 @@ public class Participation extends BaseTimeEntity {
     }
 
     @Builder
-    public Participation(int purchaseNumber, User user) {
+    public Participation(int purchaseNumber, User user, int payment) {
         validatePurchaseNumber(purchaseNumber);
         this.purchaseNumber = purchaseNumber;
         this.user = user;
+        this.paymentPoint = new Point(payment);
     }
 
     private void validatePurchaseNumber(int purchaseNumber) {
