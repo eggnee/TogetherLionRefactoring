@@ -38,9 +38,7 @@ public class User extends BaseTimeEntity {
         this.point = new Point(0);
     }
 
-    public boolean compareById(Long otherUserId) {
-        if (!this.id.equals(otherUserId))
-            return false;
-        return true;
+    public boolean isSameUser(Long otherUserId) {
+        return this.id.equals(otherUserId);
     }
 }

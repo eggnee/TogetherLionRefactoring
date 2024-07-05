@@ -17,12 +17,12 @@ public class Point {
         this.amount = amount;
     }
 
-    public void plus(int amount) {
+    public void chargeOrRefund(int amount) {
         validateAmount(amount);
         this.amount += amount;
     }
 
-    public void minus(int amount) {
+    public void use(int amount) {
         validateAmount(this.amount - amount);
         this.amount -= amount;
     }

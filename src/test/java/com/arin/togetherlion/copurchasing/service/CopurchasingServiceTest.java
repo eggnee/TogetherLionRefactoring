@@ -113,7 +113,7 @@ class CopurchasingServiceTest {
 
     @Test
     @DisplayName("작성자는 공동구매 게시물을 삭제할 수 있다. (모집 기간이 만료됐지만 최소 상품 개수가 모집되지 않은 경우")
-    void delete2() {
+    void deleteWithDeadline() {
         // given
         final Long writerId = userRepository.save(writer).getId();
         final Copurchasing notStartedCopurchasing = Copurchasing.builder()

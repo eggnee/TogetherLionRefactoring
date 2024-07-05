@@ -53,7 +53,7 @@ public class CopurchasingService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매 게시물입니다."));
 
         User writer = copurchasing.getWriter();
-        if (!writer.compareById(userId))
+        if (!writer.isSameUser(userId))
             throw new CustomException(ErrorCode.NO_PERMISSION);
 
         if (copurchasing.isStarted())
@@ -76,7 +76,7 @@ public class CopurchasingService {
         final User participant = userRepository.findById(request.getParticipantId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        if (copurchasing.getWriter().compareById(participant.getId()))
+        if (copurchasing.getWriter().isSameUser(participant.getId()))
             throw new CustomException(ErrorCode.CANT_JOIN);
 
         Participation participation = Participation.builder()
