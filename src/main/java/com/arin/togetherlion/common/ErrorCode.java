@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum ErrorCode {
 
-    CANT_JOIN(HttpStatus.BAD_REQUEST, "작성자는 본인의 공동구매에 참여할 수 없습니다."),
+    CANT_JOIN(HttpStatus.BAD_REQUEST, "공동구매에 이미 참여중 입니다."),
     NO_PERMISSION(HttpStatus.UNAUTHORIZED, "삭제 권한이 없습니다.");
 
     private final HttpStatus httpStatus;    // HttpStatus

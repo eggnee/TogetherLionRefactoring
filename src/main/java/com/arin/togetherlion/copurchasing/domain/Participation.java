@@ -50,4 +50,10 @@ public class Participation extends BaseTimeEntity {
         if (purchaseNumber < 1)
             throw new IllegalArgumentException("상품 구매 개수는 1 이상이여야 합니다.");
     }
+
+    public boolean isParticipant(User participant) {
+        if (this.user.equals(participant))
+            return true;
+        return false;
+    }
 }

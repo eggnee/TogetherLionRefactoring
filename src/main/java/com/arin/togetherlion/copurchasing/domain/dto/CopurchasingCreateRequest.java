@@ -46,4 +46,7 @@ public class CopurchasingCreateRequest {
 
     @NotNull(message = "작성자 Id는 필수 입력 값입니다.")
     private Long writerId;
+
+    @NotNull(message = "상품 구매 개수는 필수 입력 값입니다.")
+    private int purchaseNumber;
 }

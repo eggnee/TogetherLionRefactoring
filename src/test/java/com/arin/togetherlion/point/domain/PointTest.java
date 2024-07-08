@@ -39,7 +39,7 @@ class PointTest {
 
         //when
         //then
-        assertThatThrownBy(() -> wrongPoint.chargeOrRefund(-1000))
+        assertThatThrownBy(() -> wrongPoint.add(-1000))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

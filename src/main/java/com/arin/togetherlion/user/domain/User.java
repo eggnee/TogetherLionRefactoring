@@ -38,7 +38,11 @@ public class User extends BaseTimeEntity {
         this.point = new Point(0);
     }
 
-    public boolean isSameUser(Long otherUserId) {
-        return this.id.equals(otherUserId);
+    public boolean isSameUser(User otherUser) {
+        return this.id.equals(otherUser.getId());
+    }
+
+    public void pay(int paymentCost) {
+        this.getPoint().use(paymentCost);
     }
 }

@@ -61,6 +61,7 @@ class CopurchasingServiceTest {
                 .productUrl("url")
                 .shippingCost(new ShippingCost(3000))
                 .writer(writer)
+                .purchaseNumber(1)
                 .build();
     }
 
@@ -81,6 +82,7 @@ class CopurchasingServiceTest {
                 .productUrl("url")
                 .shippingCost(3000)
                 .writerId(notExistedUserId)
+                .purchaseNumber(1)
                 .build();
 
         //when
@@ -126,12 +128,13 @@ class CopurchasingServiceTest {
                 .productTotalCost(new ProductTotalCost(1000))
                 .purchasePhotoUrl("url")
                 .tradeDate(LocalDateTime.now().plusDays(10))
-                .deadlineDate(LocalDateTime.now().minusDays(3))
+                .deadlineDate(LocalDateTime.now().plusDays(3))
                 .productMaxNumber(5)
                 .content("content")
                 .productUrl("url")
                 .shippingCost(new ShippingCost(3000))
                 .writer(writer)
+                .purchaseNumber(1)
                 .build();
         final Long notStartedCopurchasingId = copurchasingRepository.save(notStartedCopurchasing).getId();
 
@@ -171,50 +174,13 @@ class CopurchasingServiceTest {
         // then
         Assertions.assertThatThrownBy(() -> copurchasingService.delete(notWriterId, testCopurchasing.getId()))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NO_PERMISSION);
-    }
-
-    @Test
-    @DisplayName("이미 시작된 공동구매 게시물은 삭제할 시 예외가 발생한다. (최대 상품 개수 이상 모집된 경우)")
-    void startedDeleteWithMaxNumber() {
-        // given
-        final Long writerId = userRepository.save(writer).getId();
-        final Copurchasing startedCopurchasing = Copurchasing.builder()
-                .title("title")
-                .productMinNumber(1)
-                .productTotalCost(new ProductTotalCost(1000))
-                .purchasePhotoUrl("url")
-                .tradeDate(LocalDateTime.now().plusDays(10))
-                .deadlineDate(LocalDateTime.now().plusDays(5))
-                .productMaxNumber(1)
-                .content("content")
-                .productUrl("url")
-                .shippingCost(new ShippingCost(3000))
-                .writer(writer)
-                .build();
-        final Long startedCopurchasingId = copurchasingRepository.save(startedCopurchasing).getId();
-
-        final User user = User.builder()
-                .email("email")
-                .password("password")
-                .nickname("nickname")
-                .build();
-        user.getPoint().chargeOrRefund(10000);
-        userRepository.save(user);
-
-        final Participation participation = new Participation(1, user, 1000);
-        startedCopurchasing.addParticipation(participation);
-        participationRepository.save(participation);
-
-        // when
-        // then
-        Assertions.assertThatThrownBy(() -> copurchasingService.delete(writerId, startedCopurchasingId))
-                .isInstanceOf(IllegalArgumentException.class);
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.NO_PERMISSION);
     }
 
     @Test
     @DisplayName("이미 시작된 공동구매 게시물은 삭제할 시 예외가 발생한다. (모집 기간 만료 + 최소 상품 개수 이상 모집된 경우)")
-    void startedDeleteWithMinNumber() {
+    void startedDeleteWithMinNumber() throws InterruptedException{
         // given
         Long writerId = userRepository.save(writer).getId();
         final Copurchasing startedCopurchasing = Copurchasing.builder()
@@ -223,12 +189,13 @@ class CopurchasingServiceTest {
                 .productTotalCost(new ProductTotalCost(1000))
                 .purchasePhotoUrl("url")
                 .tradeDate(LocalDateTime.now().plusDays(10))
-                .deadlineDate(LocalDateTime.now().minusDays(3))
+                .deadlineDate(LocalDateTime.now().plusSeconds(1))
                 .productMaxNumber(5)
                 .content("content")
                 .productUrl("url")
                 .shippingCost(new ShippingCost(3000))
                 .writer(writer)
+                .purchaseNumber(1)
                 .build();
         final Long startedCopurchasingId = copurchasingRepository.save(startedCopurchasing).getId();
 
@@ -242,6 +209,8 @@ class CopurchasingServiceTest {
         final Participation participation = new Participation(1, user, 0);
         startedCopurchasing.addParticipation(participation);
         participationRepository.save(participation);
+
+        Thread.sleep(1000);
 
         // when
         // then
@@ -266,6 +235,7 @@ class CopurchasingServiceTest {
                 .productUrl("url")
                 .shippingCost(new ShippingCost(3000))
                 .writer(writer)
+                .purchaseNumber(1)
                 .build();
         final Long copurchasingId = copurchasingRepository.save(copurchasing).getId();
 
@@ -275,7 +245,7 @@ class CopurchasingServiceTest {
                 .nickname("nickname")
                 .build();
         final Long participantId = userRepository.save(user).getId();
-        user.getPoint().chargeOrRefund(10000);
+        user.getPoint().add(10000);
 
         final CopurchasingParticipateRequest request = CopurchasingParticipateRequest.builder()
                 .participantId(participantId)
@@ -295,14 +265,15 @@ class CopurchasingServiceTest {
     }
 
     @Test
-    @DisplayName("작성자는 본인의 공동구매에 참여할 시 예외가 발생한다.")
+    @DisplayName("중복된 사용자가 공동구매에 참여할 시 예외가 발생한다.")
     void writerParticipate() {
         // given
-        final Long userId = userRepository.save(writer).getId();
+        final Long writerId = userRepository.save(writer).getId();
+        writer.getPoint().add(10000);
         final Long copurchasingId = copurchasingRepository.save(testCopurchasing).getId();
 
         final CopurchasingParticipateRequest request = CopurchasingParticipateRequest.builder()
-                .participantId(userId)
+                .participantId(writerId)
                 .purchaseNumber(1)
                 .copurchasingId(copurchasingId)
                 .build();
@@ -311,65 +282,13 @@ class CopurchasingServiceTest {
         // then
         Assertions.assertThatThrownBy(() -> copurchasingService.participate(request))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CANT_JOIN);
-    }
-
-    @Test
-    @DisplayName("이미 시작된 공동구매에 참여할 시 예외가 발생한다. (최대 상품 개수 이상 모집된 경우)")
-    void startedParticipateWithMaxNumber() {
-        // given
-        final Long writerId = userRepository.save(writer).getId();
-
-        final Copurchasing startedCopurchasing = Copurchasing.builder()
-                .title("title")
-                .productMinNumber(1)
-                .productTotalCost(new ProductTotalCost(1000))
-                .purchasePhotoUrl("url")
-                .tradeDate(LocalDateTime.now().plusDays(10))
-                .deadlineDate(LocalDateTime.now().plusDays(5))
-                .productMaxNumber(1)
-                .content("content")
-                .productUrl("url")
-                .shippingCost(new ShippingCost(3000))
-                .writer(writer)
-                .build();
-        final Long startedCopurchasingId = copurchasingRepository.save(startedCopurchasing).getId();
-
-        final User user = User.builder()
-                .email("email")
-                .password("password")
-                .nickname("nickname")
-                .build();
-        userRepository.save(user);
-        user.getPoint().chargeOrRefund(10000);
-
-        final Participation participation = new Participation(1, user, 0);
-        startedCopurchasing.addParticipation(participation);
-        participationRepository.save(participation);
-
-        final User participant = User.builder()
-                .email("email2")
-                .password("password2")
-                .nickname("nickname2")
-                .build();
-        final Long participantId = userRepository.save(participant).getId();
-        participant.getPoint().chargeOrRefund(10000);
-
-        final CopurchasingParticipateRequest request = CopurchasingParticipateRequest.builder()
-                .participantId(participantId)
-                .purchaseNumber(1)
-                .copurchasingId(startedCopurchasingId)
-                .build();
-
-        // when
-        // then
-        Assertions.assertThatThrownBy(() -> copurchasingService.participate(request))
-                .isInstanceOf(IllegalArgumentException.class);
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.CANT_JOIN);
     }
 
     @Test
     @DisplayName("모집 기한이 만료된 공동구매에 참여할 시 예외가 발생한다. (모집 기한 만료 이후)")
-    void startedParticipateWithMinNumber() {
+    void startedParticipateWithMinNumber() throws InterruptedException {
         // given
         Long writerId = userRepository.save(writer).getId();
         final Copurchasing startedCopurchasing = Copurchasing.builder()
@@ -378,13 +297,17 @@ class CopurchasingServiceTest {
                 .productTotalCost(new ProductTotalCost(1000))
                 .purchasePhotoUrl("url")
                 .tradeDate(LocalDateTime.now().plusDays(10))
-                .deadlineDate(LocalDateTime.now().minusDays(3))
+                .deadlineDate(LocalDateTime.now().plusSeconds(1))
                 .productMaxNumber(5)
                 .content("content")
                 .productUrl("url")
                 .shippingCost(new ShippingCost(3000))
                 .writer(writer)
+                .purchaseNumber(1)
                 .build();
+
+        Thread.sleep(1000);
+
         final Long startedCopurchasingId = copurchasingRepository.save(startedCopurchasing).getId();
 
         final User participant = User.builder()
@@ -393,7 +316,7 @@ class CopurchasingServiceTest {
                 .nickname("nickname")
                 .build();
         final Long participantId = userRepository.save(participant).getId();
-        participant.getPoint().chargeOrRefund(10000);
+        participant.getPoint().add(10000);
 
         final CopurchasingParticipateRequest request = CopurchasingParticipateRequest.builder()
                 .participantId(participantId)
