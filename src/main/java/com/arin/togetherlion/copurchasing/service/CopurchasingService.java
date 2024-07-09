@@ -57,6 +57,8 @@ public class CopurchasingService {
 
         final User writer = copurchasing.getWriter();
         copurchasing.validateDelete(writer, deleter);
+        // 포인트 다시 돌려줘야 함
+        copurchasing.refund();
 
         copurchasingRepository.delete(copurchasing);
     }
@@ -69,6 +71,7 @@ public class CopurchasingService {
         final User participant = userRepository.findById(request.getParticipantId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
+        // 이 로직을 copurchasing 안에 넣어도 될까?
         final int paymentCost = copurchasing.getPaymentCost(request.getPurchaseNumber());
         participant.pay(paymentCost);
 

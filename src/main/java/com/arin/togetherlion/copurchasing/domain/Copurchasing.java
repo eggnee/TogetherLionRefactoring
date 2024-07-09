@@ -81,6 +81,7 @@ public class Copurchasing extends BaseTimeEntity {
         this.purchasePhotoUrl = purchasePhotoUrl;
         this.tradeDate = tradeDate;
         this.writer = writer;
+        writer.pay(getPaymentCost(purchaseNumber));
         addParticipation(new Participation(purchaseNumber, writer, getPaymentCost(purchaseNumber)));
     }
 
@@ -99,7 +100,6 @@ public class Copurchasing extends BaseTimeEntity {
         if (isDeadlineExpired()) {
             if (this.participations.getTotalProductNumber() >= this.productMinNumber)
                 return true;
-            return false;
         }
         return false;
     }
@@ -113,10 +113,10 @@ public class Copurchasing extends BaseTimeEntity {
     private void validateParticipation(User participant) {
         if (this.participations.isParticipant(participant))
             throw new CustomException(ErrorCode.CANT_JOIN);
-        if (isStarted())
-            throw new IllegalArgumentException("이미 시작된 공동구매에 참여할 수 없습니다.");
         if (isDeadlineExpired())
-            throw new IllegalArgumentException("모집 기한이 만료된 공동구매에 참여할 수 없습니다.");
+            throw new IllegalArgumentException("모집 기한이 만료된 공동구매는 참여할 수 없습니다.");
+        if (this.participations.getTotalProductNumber() >= this.productMaxNumber)
+            throw new IllegalArgumentException("최대 상품 개수가 모집된 공동구매는 참여할 수 없습니다.");
     }
 
     private int calculateIndividualCost(int totalCost, int totalProductNumber) {
@@ -127,7 +127,7 @@ public class Copurchasing extends BaseTimeEntity {
         final int totalCost = this.getShippingCost().getValue() + this.getProductTotalCost().getValue();
         if (isStarted()) {
             final int individualCost = calculateIndividualCost(totalCost, this.participations.getTotalProductNumber());
-            return individualCost + purchaseNumber;
+            return individualCost * purchaseNumber;
         }
         return calculateIndividualCost(totalCost, this.productMinNumber) * purchaseNumber;
     }
@@ -137,5 +137,9 @@ public class Copurchasing extends BaseTimeEntity {
             throw new CustomException(ErrorCode.NO_PERMISSION);
         if (isStarted())
             throw new IllegalArgumentException("이미 시작된 공동구매 게시물은 삭제할 수 없습니다.");
+    }
+
+    public void refund() {
+        participations.refund();
     }
 }

@@ -31,4 +31,9 @@ public class Participations {
                 .mapToInt(Participation::getPurchaseNumber)
                 .sum();
     }
+
+    public void refund() {
+        for (Participation participation : participations)
+            participation.getUser().refund(participation.getPaymentPoint().getAmount());
+    }
 }
