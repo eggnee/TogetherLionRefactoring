@@ -1,7 +1,8 @@
 package com.arin.togetherlion.copurchasing.controller;
 
 import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingCreateRequest;
-import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingParticipateRequest;
+import com.arin.togetherlion.copurchasing.domain.dto.ParticipationCreateRequest;
+import com.arin.togetherlion.copurchasing.domain.dto.ParticipationDeleteRequest;
 import com.arin.togetherlion.copurchasing.service.CopurchasingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,9 +31,15 @@ public class CopurchasingController {
     }
 
     @PostMapping("/participate")
-    public ResponseEntity<Void> participate(@RequestBody @Valid CopurchasingParticipateRequest request) {
-        final Long participationId = copurchasingService.participate(request);
+    public ResponseEntity<Void> participate(@RequestBody @Valid ParticipationCreateRequest request) {
+        final Long participationId = copurchasingService.participationCreate(request);
         return ResponseEntity.created(URI.create("/copurchasings/" + request.getCopurchasingId())).build();
+    }
+
+    @DeleteMapping("/participate")
+    public ResponseEntity<Void> deleteParticipation(@RequestBody @Valid ParticipationDeleteRequest request) {
+        copurchasingService.participationDelete(request);
+        return ResponseEntity.noContent().build();
     }
 }
 

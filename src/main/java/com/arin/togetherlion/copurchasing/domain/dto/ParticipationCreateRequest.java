@@ -8,7 +8,7 @@ import lombok.*;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class CopurchasingParticipateRequest {
+public class ParticipationCreateRequest {
 
     @NotNull(message = "공동구매 게시물 Id는 필수 입력 값입니다.")
     private Long copurchasingId;

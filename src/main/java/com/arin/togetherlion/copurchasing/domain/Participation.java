@@ -1,6 +1,8 @@
 package com.arin.togetherlion.copurchasing.domain;
 
 import com.arin.togetherlion.common.BaseTimeEntity;
+import com.arin.togetherlion.common.CustomException;
+import com.arin.togetherlion.common.ErrorCode;
 import com.arin.togetherlion.point.domain.Point;
 import com.arin.togetherlion.user.domain.User;
 import jakarta.persistence.*;
@@ -30,7 +32,7 @@ public class Participation extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User user;
+    private User participant;
 
     public boolean isConfirm() {
         if (confirmDate == null)
@@ -39,10 +41,10 @@ public class Participation extends BaseTimeEntity {
     }
 
     @Builder
-    public Participation(int purchaseNumber, User user, int payment) {
+    public Participation(int purchaseNumber, User participant, int payment) {
         validatePurchaseNumber(purchaseNumber);
         this.purchaseNumber = purchaseNumber;
-        this.user = user;
+        this.participant = participant;
         this.paymentPoint = new Point(payment);
     }
 
@@ -52,8 +54,21 @@ public class Participation extends BaseTimeEntity {
     }
 
     public boolean isParticipant(User participant) {
-        if (this.user.equals(participant))
+        if (this.participant.isSameUser(participant))
             return true;
         return false;
+    }
+
+    public void validateDeleteParticipation(Copurchasing copurchasing, User deleter) {
+        if (copurchasing.isStarted())
+            throw new IllegalArgumentException("이미 시작한 공동구매는 참여 취소가 불가합니다.");
+        if (!deleter.isSameUser(participant))
+            throw new CustomException(ErrorCode.NO_PERMISSION);
+        if (deleter.isSameUser(copurchasing.getWriter()))
+            throw new IllegalArgumentException("작성자는 참여 취소가 불가합니다.");
+    }
+
+    public void charge() {
+        participant.charge(paymentPoint.getAmount());
     }
 }
