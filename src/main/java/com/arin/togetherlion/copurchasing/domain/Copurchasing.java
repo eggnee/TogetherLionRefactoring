@@ -61,8 +61,8 @@ public class Copurchasing extends BaseTimeEntity {
     private Participations participations = new Participations();
 
     public void addParticipation(Participation participation) {
-        validateParticipation(participation.getUser());
-        this.participations.add(participation);
+        validateParticipation(participation.getParticipant());
+        participations.add(participation);
     }
 
     @Builder
@@ -81,8 +81,6 @@ public class Copurchasing extends BaseTimeEntity {
         this.purchasePhotoUrl = purchasePhotoUrl;
         this.tradeDate = tradeDate;
         this.writer = writer;
-        writer.pay(getPaymentCost(purchaseNumber));
-        addParticipation(new Participation(purchaseNumber, writer, getPaymentCost(purchaseNumber)));
     }
 
     private void validateNumber(int productMinNumber, int productMaxNumber) {
@@ -96,26 +94,25 @@ public class Copurchasing extends BaseTimeEntity {
     }
 
     public boolean isStarted() {
-        // 만료 기한이 지났고 + 최소 모집 개수가 찼을 때!
         if (isDeadlineExpired()) {
-            if (this.participations.getTotalProductNumber() >= this.productMinNumber)
+            if (participations.getTotalProductNumber() >= productMinNumber)
                 return true;
         }
         return false;
     }
 
     private boolean isDeadlineExpired() {
-        if (this.getDeadlineDate().isBefore(LocalDateTime.now()))
+        if (getDeadlineDate().isBefore(LocalDateTime.now()))
             return true;
         return false;
     }
 
     private void validateParticipation(User participant) {
-        if (this.participations.isParticipant(participant))
+        if (participations.isParticipant(participant))
             throw new CustomException(ErrorCode.CANT_JOIN);
         if (isDeadlineExpired())
             throw new IllegalArgumentException("모집 기한이 만료된 공동구매는 참여할 수 없습니다.");
-        if (this.participations.getTotalProductNumber() >= this.productMaxNumber)
+        if (participations.getTotalProductNumber() >= productMaxNumber)
             throw new IllegalArgumentException("최대 상품 개수가 모집된 공동구매는 참여할 수 없습니다.");
     }
 
@@ -124,22 +121,22 @@ public class Copurchasing extends BaseTimeEntity {
     }
 
     public int getPaymentCost(int purchaseNumber) {
-        final int totalCost = this.getShippingCost().getValue() + this.getProductTotalCost().getValue();
+        final int totalCost = getShippingCost().getValue() + getProductTotalCost().getValue();
         if (isStarted()) {
-            final int individualCost = calculateIndividualCost(totalCost, this.participations.getTotalProductNumber());
+            final int individualCost = calculateIndividualCost(totalCost, participations.getTotalProductNumber());
             return individualCost * purchaseNumber;
         }
-        return calculateIndividualCost(totalCost, this.productMinNumber) * purchaseNumber;
+        return calculateIndividualCost(totalCost, productMinNumber) * purchaseNumber;
     }
 
-    public void validateDelete(User writer, User deleter) {
-        if (!writer.isSameUser(deleter))
+    public void validateDelete(User deleter) {
+        if (!getWriter().isSameUser(deleter))
             throw new CustomException(ErrorCode.NO_PERMISSION);
         if (isStarted())
             throw new IllegalArgumentException("이미 시작된 공동구매 게시물은 삭제할 수 없습니다.");
     }
 
-    public void refund() {
-        participations.refund();
+    public void charge() {
+        participations.charge();
     }
 }

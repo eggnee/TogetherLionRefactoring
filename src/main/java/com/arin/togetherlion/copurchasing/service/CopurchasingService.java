@@ -5,7 +5,8 @@ import com.arin.togetherlion.copurchasing.domain.Participation;
 import com.arin.togetherlion.copurchasing.domain.ProductTotalCost;
 import com.arin.togetherlion.copurchasing.domain.ShippingCost;
 import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingCreateRequest;
-import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingParticipateRequest;
+import com.arin.togetherlion.copurchasing.domain.dto.ParticipationCreateRequest;
+import com.arin.togetherlion.copurchasing.domain.dto.ParticipationDeleteRequest;
 import com.arin.togetherlion.copurchasing.repository.CopurchasingRepository;
 import com.arin.togetherlion.copurchasing.repository.ParticipationRepository;
 import com.arin.togetherlion.user.UserService;
@@ -42,9 +43,26 @@ public class CopurchasingService {
                 .tradeDate(request.getTradeDate())
                 .purchasePhotoUrl(request.getPurchasePhotoUrl())
                 .writer(writer)
+                .purchaseNumber(request.getPurchaseNumber())
                 .build();
 
-        return copurchasingRepository.save(copurchasing).getId();
+        final Long copurchasingId = copurchasingRepository.save(copurchasing).getId();
+
+        System.out.println("왜 실행이 안돼???");
+        final int paymentCost = copurchasing.getPaymentCost(request.getPurchaseNumber());
+        writer.pay(paymentCost);
+        final Participation participation = Participation.builder()
+                .purchaseNumber(request.getPurchaseNumber())
+                .participant(writer)
+                .payment(paymentCost)
+                .build();
+        copurchasing.addParticipation(participation);
+        final Long participationId = participationRepository.save(participation).getId();
+
+        System.out.println("왜 실행이 안돼?");
+        System.out.println("participationId = " + participationId);
+
+        return copurchasingId;
     }
 
     @Transactional
@@ -56,32 +74,47 @@ public class CopurchasingService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
         final User writer = copurchasing.getWriter();
-        copurchasing.validateDelete(writer, deleter);
-        // 포인트 다시 돌려줘야 함
-        copurchasing.refund();
+        copurchasing.validateDelete(deleter);
+        copurchasing.charge();
 
         copurchasingRepository.delete(copurchasing);
     }
 
     @Transactional
-    public Long participate(CopurchasingParticipateRequest request) {
+    public Long participationCreate(ParticipationCreateRequest request) {
         final Copurchasing copurchasing = copurchasingRepository.findById(request.getCopurchasingId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매 게시물입니다."));
 
         final User participant = userRepository.findById(request.getParticipantId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        // 이 로직을 copurchasing 안에 넣어도 될까?
         final int paymentCost = copurchasing.getPaymentCost(request.getPurchaseNumber());
         participant.pay(paymentCost);
-
-        Participation participation = Participation.builder()
+        final Participation participation = Participation.builder()
                 .purchaseNumber(request.getPurchaseNumber())
-                .user(participant)
+                .participant(participant)
                 .payment(paymentCost)
                 .build();
-
         copurchasing.addParticipation(participation);
         return participationRepository.save(participation).getId();
+    }
+
+    @Transactional
+    public void participationDelete(ParticipationDeleteRequest request) {
+        final Participation participation = participationRepository.findById(request.getParticipationId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매 참여입니다."));
+
+        final Copurchasing copurchasing = copurchasingRepository.findByParticipation(participation)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매에 대한 참여입니다."));
+
+        final User deleter = userRepository.findById(request.getDeleterId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        participation.validateDeleteParticipation(copurchasing, deleter);
+
+        participation.charge();
+        copurchasing.getParticipations().getParticipations().remove(participation);
+
+        participationRepository.delete(participation);
     }
 }

@@ -46,7 +46,7 @@ public class User extends BaseTimeEntity {
         this.getPoint().use(paymentCost);
     }
 
-    public void refund(int refundCost) {
-        this.getPoint().add(refundCost);
+    public void charge(int chargeCost) {
+        this.getPoint().add(chargeCost);
     }
 }

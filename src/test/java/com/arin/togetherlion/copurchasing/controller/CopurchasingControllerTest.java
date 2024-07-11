@@ -3,7 +3,8 @@ package com.arin.togetherlion.copurchasing.controller;
 import com.arin.togetherlion.common.CustomException;
 import com.arin.togetherlion.common.ErrorCode;
 import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingCreateRequest;
-import com.arin.togetherlion.copurchasing.domain.dto.CopurchasingParticipateRequest;
+import com.arin.togetherlion.copurchasing.domain.dto.ParticipationCreateRequest;
+import com.arin.togetherlion.copurchasing.domain.dto.ParticipationDeleteRequest;
 import com.arin.togetherlion.copurchasing.service.CopurchasingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -90,7 +91,7 @@ class CopurchasingControllerTest {
     }
 
     @Test
-    @DisplayName("/coupurchasing 유효한 delete 요청 시 201 응답을 반환한다.")
+    @DisplayName("/coupurchasing 유효한 delete 요청 시 204 응답을 반환한다.")
     void deleteSuccess() throws Exception {
         Long copurchasingId = 1L;
         Long userId = 2L;
@@ -127,14 +128,14 @@ class CopurchasingControllerTest {
     void participateSuccess() throws Exception {
         Long copurchasingId = 1L;
         Long participantId = 2L;
-        CopurchasingParticipateRequest validRequest = CopurchasingParticipateRequest.builder()
+        ParticipationCreateRequest validRequest = ParticipationCreateRequest.builder()
                 .copurchasingId(copurchasingId)
                 .purchaseNumber(1)
                 .participantId(participantId)
                 .build();
 
         // 모킹된 서비스 동작 정의
-        when(copurchasingService.participate(any(CopurchasingParticipateRequest.class))).thenReturn(copurchasingId);
+        when(copurchasingService.participationCreate(any(ParticipationCreateRequest.class))).thenReturn(copurchasingId);
 
         // 요청 및 응답 검증
         mockMvc.perform(post("/copurchasings/participate")
@@ -149,7 +150,7 @@ class CopurchasingControllerTest {
     void participateFail() throws Exception {
         Long copurchasingId = 1L;
         Long participantId = 2L;
-        CopurchasingParticipateRequest invalidRequest = CopurchasingParticipateRequest.builder()
+        ParticipationCreateRequest invalidRequest = ParticipationCreateRequest.builder()
                 .copurchasingId(copurchasingId)
                 .participantId(participantId)
                 .build();
@@ -159,5 +160,47 @@ class CopurchasingControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("/coupurchasing/participate 유효한 delete 요청 시 204 응답을 반환한다.")
+    void deleteParticipationSuccess() throws Exception {
+        Long participationId = 1L;
+        Long deleterId = 2L;
+        ParticipationDeleteRequest validRequest = ParticipationDeleteRequest.builder()
+                .participationId(participationId)
+                .deleterId(deleterId)
+                .build();
+
+        // 서비스 계층 모킹 설정
+        doNothing().when(copurchasingService).participationDelete(validRequest);
+
+        mockMvc.perform(delete("/copurchasings/participate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isNoContent());
+
+        verify(copurchasingService).participationDelete(refEq(validRequest));
+    }
+
+    @Test
+    @DisplayName("/coupurchasing/participate 유효하지 않은 delete 요청 시 204 응답을 반환한다.")
+    void deleteParticipationFail() throws Exception {
+        Long participationId = 1L;
+        Long deleterId = 2L;
+        ParticipationDeleteRequest validRequest = ParticipationDeleteRequest.builder()
+                .participationId(participationId)
+                .deleterId(deleterId)
+                .build();
+
+        // 서비스 계층 모킹 설정
+        doThrow(new CustomException(ErrorCode.NO_PERMISSION)).when(copurchasingService).participationDelete(any(ParticipationDeleteRequest.class));
+
+        mockMvc.perform(delete("/copurchasings/participate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isUnauthorized());
+
+        verify(copurchasingService).participationDelete(any(ParticipationDeleteRequest.class));
     }
 }

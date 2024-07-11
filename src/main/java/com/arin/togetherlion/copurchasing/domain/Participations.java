@@ -5,12 +5,14 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.OneToMany;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Embeddable
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Participations {
 
@@ -32,8 +34,7 @@ public class Participations {
                 .sum();
     }
 
-    public void refund() {
-        for (Participation participation : participations)
-            participation.getUser().refund(participation.getPaymentPoint().getAmount());
+    public void charge() {
+        participations.stream().forEach(Participation::charge);
     }
 }
