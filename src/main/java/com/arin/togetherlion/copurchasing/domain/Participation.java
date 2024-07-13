@@ -1,9 +1,11 @@
 package com.arin.togetherlion.copurchasing.domain;
 
 import com.arin.togetherlion.common.BaseTimeEntity;
+import com.arin.togetherlion.common.CustomException;
+import com.arin.togetherlion.common.ErrorCode;
+import com.arin.togetherlion.point.domain.Point;
 import com.arin.togetherlion.user.domain.User;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,18 +27,48 @@ public class Participation extends BaseTimeEntity {
     @Column(name = "confirm_date")
     private LocalDateTime confirmDate;
 
+    @Column(name = "payment_point")
+    private Point paymentPoint;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User user;
+    private User participant;
 
     public boolean isConfirm() {
         if (confirmDate == null)
             return false;
         return true;
     }
+
     @Builder
-    public Participation(int purchaseNumber, User user) {
+    public Participation(int purchaseNumber, User participant, int payment) {
+        validatePurchaseNumber(purchaseNumber);
         this.purchaseNumber = purchaseNumber;
-        this.user = user;
+        this.participant = participant;
+        this.paymentPoint = new Point(payment);
+    }
+
+    private void validatePurchaseNumber(int purchaseNumber) {
+        if (purchaseNumber < 1)
+            throw new IllegalArgumentException("상품 구매 개수는 1 이상이여야 합니다.");
+    }
+
+    public boolean isParticipant(User participant) {
+        if (this.participant.isSameUser(participant))
+            return true;
+        return false;
+    }
+
+    public void validateDeleteParticipation(Copurchasing copurchasing, User deleter) {
+        if (copurchasing.isStarted())
+            throw new IllegalArgumentException("이미 시작한 공동구매는 참여 취소가 불가합니다.");
+        if (!deleter.isSameUser(participant))
+            throw new CustomException(ErrorCode.NO_PERMISSION);
+        if (deleter.isSameUser(copurchasing.getWriter()))
+            throw new IllegalArgumentException("작성자는 참여 취소가 불가합니다.");
+    }
+
+    public void charge() {
+        participant.charge(paymentPoint.getAmount());
     }
 }

@@ -1,19 +1,16 @@
 package com.arin.togetherlion.copurchasing.domain;
 
 import com.arin.togetherlion.common.BaseTimeEntity;
+import com.arin.togetherlion.common.CustomException;
+import com.arin.togetherlion.common.ErrorCode;
 import com.arin.togetherlion.user.domain.User;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Getter
@@ -25,10 +22,8 @@ public class Copurchasing extends BaseTimeEntity {
     private Long id;
 
     @Column(nullable = false)
-    @Size(min = 1, max = 20)
     private String title;
 
-    @Size(max = 500)
     private String content;
 
     @Column(name = "product_total_cost", nullable = false)
@@ -62,15 +57,16 @@ public class Copurchasing extends BaseTimeEntity {
     @JoinColumn(name = "user_id")
     private User writer;
 
-    @OneToMany
-    private List<Participation> participations = new ArrayList<>();
+    @Embedded
+    private Participations participations = new Participations();
 
     public void addParticipation(Participation participation) {
-        this.participations.add(participation);
+        validateParticipation(participation.getParticipant());
+        participations.add(participation);
     }
 
     @Builder
-    public Copurchasing(String title, String content, ProductTotalCost productTotalCost, ShippingCost shippingCost, String productUrl, LocalDateTime expirationDate, int productMinNumber, int productMaxNumber, LocalDateTime deadlineDate, String purchasePhotoUrl, LocalDateTime tradeDate, User writer) {
+    public Copurchasing(String title, String content, ProductTotalCost productTotalCost, ShippingCost shippingCost, String productUrl, LocalDateTime expirationDate, int productMinNumber, int productMaxNumber, LocalDateTime deadlineDate, String purchasePhotoUrl, LocalDateTime tradeDate, User writer, int purchaseNumber) {
         validateNumber(productMinNumber, productMaxNumber);
         validateDate(deadlineDate, tradeDate);
         this.title = title;
@@ -95,5 +91,52 @@ public class Copurchasing extends BaseTimeEntity {
     private void validateDate(LocalDateTime deadlineDate, LocalDateTime tradeDate) {
         if (tradeDate.isBefore(deadlineDate))
             throw new IllegalArgumentException("거래 희망 일자는 모집 완료 일자 이후여야 합니다.");
+    }
+
+    public boolean isStarted() {
+        if (isDeadlineExpired()) {
+            if (participations.getTotalProductNumber() >= productMinNumber)
+                return true;
+        }
+        return false;
+    }
+
+    private boolean isDeadlineExpired() {
+        if (getDeadlineDate().isBefore(LocalDateTime.now()))
+            return true;
+        return false;
+    }
+
+    private void validateParticipation(User participant) {
+        if (participations.isParticipant(participant))
+            throw new CustomException(ErrorCode.CANT_JOIN);
+        if (isDeadlineExpired())
+            throw new IllegalArgumentException("모집 기한이 만료된 공동구매는 참여할 수 없습니다.");
+        if (participations.getTotalProductNumber() >= productMaxNumber)
+            throw new IllegalArgumentException("최대 상품 개수가 모집된 공동구매는 참여할 수 없습니다.");
+    }
+
+    private int calculateIndividualCost(int totalCost, int totalProductNumber) {
+        return (int) Math.ceil((double) totalCost / totalProductNumber);
+    }
+
+    public int getPaymentCost(int purchaseNumber) {
+        final int totalCost = getShippingCost().getValue() + getProductTotalCost().getValue();
+        if (isStarted()) {
+            final int individualCost = calculateIndividualCost(totalCost, participations.getTotalProductNumber());
+            return individualCost * purchaseNumber;
+        }
+        return calculateIndividualCost(totalCost, productMinNumber) * purchaseNumber;
+    }
+
+    public void validateDelete(User deleter) {
+        if (!getWriter().isSameUser(deleter))
+            throw new CustomException(ErrorCode.NO_PERMISSION);
+        if (isStarted())
+            throw new IllegalArgumentException("이미 시작된 공동구매 게시물은 삭제할 수 없습니다.");
+    }
+
+    public void charge() {
+        participations.charge();
     }
 }
