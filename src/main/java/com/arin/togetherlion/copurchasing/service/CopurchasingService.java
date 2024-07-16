@@ -46,23 +46,20 @@ public class CopurchasingService {
                 .purchaseNumber(request.getPurchaseNumber())
                 .build();
 
-        final Long copurchasingId = copurchasingRepository.save(copurchasing).getId();
+        participate(copurchasing, request.getPurchaseNumber(), writer);
+        return copurchasingRepository.save(copurchasing).getId();
+    }
 
-        System.out.println("왜 실행이 안돼???");
-        final int paymentCost = copurchasing.getPaymentCost(request.getPurchaseNumber());
-        writer.pay(paymentCost);
+    private Participation participate(Copurchasing copurchasing, int purchaseNumber, User participant) {
+        final int paymentCost = copurchasing.getPaymentCost(purchaseNumber);
+        participant.pay(paymentCost);
         final Participation participation = Participation.builder()
-                .purchaseNumber(request.getPurchaseNumber())
-                .participant(writer)
+                .purchaseNumber(purchaseNumber)
+                .participant(participant)
                 .payment(paymentCost)
                 .build();
         copurchasing.addParticipation(participation);
-        final Long participationId = participationRepository.save(participation).getId();
-
-        System.out.println("왜 실행이 안돼?");
-        System.out.println("participationId = " + participationId);
-
-        return copurchasingId;
+        return participation;
     }
 
     @Transactional
@@ -75,32 +72,26 @@ public class CopurchasingService {
 
         final User writer = copurchasing.getWriter();
         copurchasing.validateDelete(deleter);
-        copurchasing.charge();
+        copurchasing.refund();
 
         copurchasingRepository.delete(copurchasing);
     }
 
     @Transactional
-    public Long participationCreate(ParticipationCreateRequest request) {
+    public Long createParticipation(ParticipationCreateRequest request) {
         final Copurchasing copurchasing = copurchasingRepository.findById(request.getCopurchasingId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매 게시물입니다."));
 
         final User participant = userRepository.findById(request.getParticipantId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        final int paymentCost = copurchasing.getPaymentCost(request.getPurchaseNumber());
-        participant.pay(paymentCost);
-        final Participation participation = Participation.builder()
-                .purchaseNumber(request.getPurchaseNumber())
-                .participant(participant)
-                .payment(paymentCost)
-                .build();
-        copurchasing.addParticipation(participation);
-        return participationRepository.save(participation).getId();
+        final Participation participation = participate(copurchasing, request.getPurchaseNumber(), participant);
+
+        return participation.getId();
     }
 
     @Transactional
-    public void participationDelete(ParticipationDeleteRequest request) {
+    public void deleteParticipation(ParticipationDeleteRequest request) {
         final Participation participation = participationRepository.findById(request.getParticipationId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공동구매 참여입니다."));
 
@@ -110,10 +101,13 @@ public class CopurchasingService {
         final User deleter = userRepository.findById(request.getDeleterId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        participation.validateDeleteParticipation(copurchasing, deleter);
+        if (copurchasing.isStarted())
+            throw new IllegalArgumentException("이미 시작한 공동구매는 참여 취소가 불가합니다.");
 
-        participation.charge();
-        copurchasing.getParticipations().getParticipations().remove(participation);
+        participation.validateDeleteParticipation(copurchasing.getWriter(), deleter);
+
+        participation.refund();
+        copurchasing.deleteParticipation(participation);
 
         participationRepository.delete(participation);
     }

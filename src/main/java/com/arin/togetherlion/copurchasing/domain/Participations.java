@@ -34,7 +34,7 @@ public class Participations {
                 .sum();
     }
 
-    public void charge() {
-        participations.stream().forEach(Participation::charge);
+    public void refund() {
+        participations.stream().forEach(Participation::refund);
     }
 }

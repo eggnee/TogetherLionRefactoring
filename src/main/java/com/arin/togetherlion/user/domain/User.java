@@ -39,14 +39,14 @@ public class User extends BaseTimeEntity {
     }
 
     public boolean isSameUser(User otherUser) {
-        return this.id.equals(otherUser.getId());
+        return id.equals(otherUser.getId());
     }
 
     public void pay(int paymentCost) {
-        this.getPoint().use(paymentCost);
+        point.use(paymentCost);
     }
 
-    public void charge(int chargeCost) {
-        this.getPoint().add(chargeCost);
+    public void refund(int chargeCost) {
+        point.add(chargeCost);
     }
 }

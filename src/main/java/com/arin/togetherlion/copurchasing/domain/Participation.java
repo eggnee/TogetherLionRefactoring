@@ -59,16 +59,14 @@ public class Participation extends BaseTimeEntity {
         return false;
     }
 
-    public void validateDeleteParticipation(Copurchasing copurchasing, User deleter) {
-        if (copurchasing.isStarted())
-            throw new IllegalArgumentException("이미 시작한 공동구매는 참여 취소가 불가합니다.");
+    public void validateDeleteParticipation(User writer, User deleter) {
         if (!deleter.isSameUser(participant))
             throw new CustomException(ErrorCode.NO_PERMISSION);
-        if (deleter.isSameUser(copurchasing.getWriter()))
+        if (deleter.isSameUser(writer))
             throw new IllegalArgumentException("작성자는 참여 취소가 불가합니다.");
     }
 
-    public void charge() {
-        participant.charge(paymentPoint.getAmount());
+    public void refund() {
+        participant.refund(paymentPoint.getAmount());
     }
 }
