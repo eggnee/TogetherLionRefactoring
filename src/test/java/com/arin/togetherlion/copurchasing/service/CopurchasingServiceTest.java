@@ -277,7 +277,7 @@ class CopurchasingServiceTest {
                 .build();
 
         // when
-        final Long participateId = copurchasingService.participationCreate(request);
+        final Long participateId = copurchasingService.createParticipation(request);
 
         // then
         Assertions.assertThat(participationRepository.existsById(participateId)).isTrue();
@@ -305,7 +305,7 @@ class CopurchasingServiceTest {
 
         // when
         // then
-        Assertions.assertThatThrownBy(() -> copurchasingService.participationCreate(request))
+        Assertions.assertThatThrownBy(() -> copurchasingService.createParticipation(request))
                 .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.CANT_JOIN);
@@ -351,7 +351,7 @@ class CopurchasingServiceTest {
 
         // when
         // then
-        Assertions.assertThatThrownBy(() -> copurchasingService.participationCreate(request))
+        Assertions.assertThatThrownBy(() -> copurchasingService.createParticipation(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .extracting("message")
                 .isEqualTo("모집 기한이 만료된 공동구매는 참여할 수 없습니다.");
@@ -397,7 +397,7 @@ class CopurchasingServiceTest {
 
         // when
         // then
-        Assertions.assertThatThrownBy(() -> copurchasingService.participationCreate(request))
+        Assertions.assertThatThrownBy(() -> copurchasingService.createParticipation(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .extracting("message")
                 .isEqualTo("최대 상품 개수가 모집된 공동구매는 참여할 수 없습니다.");
@@ -428,7 +428,7 @@ class CopurchasingServiceTest {
         Assertions.assertThat(participant.getPoint().getAmount()).isEqualTo(6000);
 
         // when
-        copurchasingService.participationDelete(participationDeleteRequest);
+        copurchasingService.deleteParticipation(participationDeleteRequest);
 
         // then
         Assertions.assertThat(participationRepository.existsById(participationId)).isFalse();
@@ -476,7 +476,7 @@ class CopurchasingServiceTest {
 
         // when
         // then
-        Assertions.assertThatThrownBy(() -> copurchasingService.participationDelete(participationDeleteRequest))
+        Assertions.assertThatThrownBy(() -> copurchasingService.deleteParticipation(participationDeleteRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .extracting("message")
                 .isEqualTo("이미 시작한 공동구매는 참여 취소가 불가합니다.");
@@ -514,7 +514,7 @@ class CopurchasingServiceTest {
 
         // when
         // then
-        Assertions.assertThatThrownBy(() -> copurchasingService.participationDelete(participationDeleteRequest))
+        Assertions.assertThatThrownBy(() -> copurchasingService.deleteParticipation(participationDeleteRequest))
                 .isInstanceOf(CustomException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.NO_PERMISSION);
@@ -532,7 +532,7 @@ class CopurchasingServiceTest {
 
         // when
         // then
-        Assertions.assertThatThrownBy(() -> copurchasingService.participationDelete(participationDeleteRequest))
+        Assertions.assertThatThrownBy(() -> copurchasingService.deleteParticipation(participationDeleteRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .extracting("message")
                 .isEqualTo("작성자는 참여 취소가 불가합니다.");

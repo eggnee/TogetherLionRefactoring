@@ -65,6 +65,10 @@ public class Copurchasing extends BaseTimeEntity {
         participations.add(participation);
     }
 
+    public void deleteParticipation(Participation participation) {
+        getParticipations().getParticipations().remove(participation);
+    }
+
     @Builder
     public Copurchasing(String title, String content, ProductTotalCost productTotalCost, ShippingCost shippingCost, String productUrl, LocalDateTime expirationDate, int productMinNumber, int productMaxNumber, LocalDateTime deadlineDate, String purchasePhotoUrl, LocalDateTime tradeDate, User writer, int purchaseNumber) {
         validateNumber(productMinNumber, productMaxNumber);
@@ -136,7 +140,7 @@ public class Copurchasing extends BaseTimeEntity {
             throw new IllegalArgumentException("이미 시작된 공동구매 게시물은 삭제할 수 없습니다.");
     }
 
-    public void charge() {
-        participations.charge();
+    public void refund() {
+        participations.refund();
     }
 }

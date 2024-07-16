@@ -32,13 +32,13 @@ public class CopurchasingController {
 
     @PostMapping("/participate")
     public ResponseEntity<Void> participate(@RequestBody @Valid ParticipationCreateRequest request) {
-        final Long participationId = copurchasingService.participationCreate(request);
+        final Long participationId = copurchasingService.createParticipation(request);
         return ResponseEntity.created(URI.create("/copurchasings/" + request.getCopurchasingId())).build();
     }
 
     @DeleteMapping("/participate")
     public ResponseEntity<Void> deleteParticipation(@RequestBody @Valid ParticipationDeleteRequest request) {
-        copurchasingService.participationDelete(request);
+        copurchasingService.deleteParticipation(request);
         return ResponseEntity.noContent().build();
     }
 }

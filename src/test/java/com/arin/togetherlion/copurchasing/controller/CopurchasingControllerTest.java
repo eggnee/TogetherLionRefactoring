@@ -135,7 +135,7 @@ class CopurchasingControllerTest {
                 .build();
 
         // 모킹된 서비스 동작 정의
-        when(copurchasingService.participationCreate(any(ParticipationCreateRequest.class))).thenReturn(copurchasingId);
+        when(copurchasingService.createParticipation(any(ParticipationCreateRequest.class))).thenReturn(copurchasingId);
 
         // 요청 및 응답 검증
         mockMvc.perform(post("/copurchasings/participate")
@@ -173,14 +173,14 @@ class CopurchasingControllerTest {
                 .build();
 
         // 서비스 계층 모킹 설정
-        doNothing().when(copurchasingService).participationDelete(validRequest);
+        doNothing().when(copurchasingService).deleteParticipation(validRequest);
 
         mockMvc.perform(delete("/copurchasings/participate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isNoContent());
 
-        verify(copurchasingService).participationDelete(refEq(validRequest));
+        verify(copurchasingService).deleteParticipation(refEq(validRequest));
     }
 
     @Test
@@ -194,13 +194,13 @@ class CopurchasingControllerTest {
                 .build();
 
         // 서비스 계층 모킹 설정
-        doThrow(new CustomException(ErrorCode.NO_PERMISSION)).when(copurchasingService).participationDelete(any(ParticipationDeleteRequest.class));
+        doThrow(new CustomException(ErrorCode.NO_PERMISSION)).when(copurchasingService).deleteParticipation(any(ParticipationDeleteRequest.class));
 
         mockMvc.perform(delete("/copurchasings/participate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isUnauthorized());
 
-        verify(copurchasingService).participationDelete(any(ParticipationDeleteRequest.class));
+        verify(copurchasingService).deleteParticipation(any(ParticipationDeleteRequest.class));
     }
 }
